@@ -1,0 +1,153 @@
+FROM rockylinux:8
+
+# install useful (but not entirely necessary) things
+RUN dnf install -y git vim
+
+# install some things
+RUN dnf install -y python3 python3-devel
+
+# set python to python3
+RUN alternatives --set python /usr/bin/python3
+
+# install pipenv
+RUN pip3 install pipenv==2021.5.29
+
+# create a home directory for templateflow and mriqc cache
+RUN mkdir -p /home/t2qc
+ENV HOME=/home/t2qc
+
+# install freeview
+ARG FV_PREFIX=/sw/apps/freeview
+ARG FV_URI="https://www.dropbox.com/s/a29ti3jth8v14v6/freeview-Linux-centos6_x86_64-stable-pub-v6.0.0.tar.gz?dl=0"
+RUN mkdir -p ${FV_PREFIX}
+RUN curl -L -s "${FV_URI}" | tar -C "${FV_PREFIX}" -xzf - \
+  --strip-components=1
+RUN dnf install -y tcsh libgomp bc mesa-libGLU libXmu
+RUN dnf install -y epel-release
+RUN dnf install -y \
+  libpng12 perl perl-core ImageMagick glx-utils \
+  mesa-libGL mesa-libGLU-devel mesa-libGL-devel \
+  mesa-dri-drivers libXmu libXmu-devel libX11 \
+  libX11-devel libXt-devel xorg-x11-server-Xorg \
+  xorg-x11-server-Xvfb mesa-libxatracker xorg-x11-drivers \
+  xorg-x11-drv-vmware libXScrnSaver dbus GConf2
+
+# install mriqc into an isolated pipenv environment
+ARG MRIQC_VERSION="0.16.1"
+ARG MRIQC_PREFIX="/sw/apps/mriqc"
+ARG MRIQC_URI="git+https://github.com/poldracklab/mriqc.git@${MRIQC_VERSION}#egg=mriqc"
+RUN dnf groupinstall -y "Development Tools"
+RUN dnf install -y xorg-x11-server-Xvfb
+RUN mkdir -p "${MRIQC_PREFIX}"
+ENV PIPENV_VENV_IN_PROJECT=1
+WORKDIR "${MRIQC_PREFIX}"
+RUN pipenv install --skip-lock \
+  "setuptools<58" \
+  "matplotlib==2.2.2" \
+  "numpy==1.15.4" \
+  "pandas==0.23.4" \
+  "scikit-learn==0.19.1" \
+  "scipy==1.1.0" \
+  "traits==4.6.0" \
+  "dipy==1.3.0" \
+  "jinja2" \
+  "nibabel==3.2.1" \
+  "nilearn==0.7.0" \
+  "nipype==1.6.0" \
+  "nitime==0.9" \
+  "niworkflows==1.1.12" \
+  "pybids==0.12.4" \
+  "PyYAML==5.4.1" \
+  "seaborn==0.11.1" \
+  "statsmodels==0.12.1" \
+  "svgutils==0.3.1" \
+  "templateflow==0.7.1" \
+  "toml==0.10.2" \
+  "xvfbwrapper==0.2.9"
+RUN pipenv install --skip-lock "${MRIQC_URI}"
+# matplotlib post setup: precache fonts and change backend to Agg
+RUN sed -i 's/\(backend *: \).*$/\1Agg/g' "$(pipenv run python -c 'import matplotlib; print(matplotlib.matplotlib_fname())')"
+# templateflow post setup: cache templates
+RUN pipenv run python -c "from templateflow import api as tfapi; \
+  tfapi.get('MNI152NLin2009cAsym', resolution=[1, 2], suffix='T1w', desc=None); \
+  tfapi.get('MNI152NLin2009cAsym', resolution=[1, 2], suffix='mask', desc=['brain', 'head']); \
+  tfapi.get('MNI152NLin2009cAsym', resolution=1, suffix='dseg', desc='carpet'); \
+  tfapi.get('MNI152NLin2009cAsym', resolution=1, suffix='probseg', label=['CSF', 'GM', 'WM']); \
+  tfapi.get('MNI152NLin2009cAsym', resolution=[1, 2], suffix='boldref')"
+# touch this directory to prevent mriqc check_latest from crashing
+RUN mkdir -p "${HOME}/.cache/mriqc"
+
+# install fsl
+ARG FSL_PREFIX="/sw/apps/fsl/"
+ARG FSL_URI="https://www.dropbox.com/s/p8go1t8kcoe41pz/fsl-6.0.4-centos7_64.tar.gz?dl=0"
+RUN dnf install -y libquadmath
+RUN mkdir -p "${FSL_PREFIX}"
+RUN curl -L -s "${FSL_URI}" | tar -C "${FSL_PREFIX}" -xzf - \
+  --strip-components=1
+
+# install afni
+ARG AFNI_PREFIX="/sw/apps/afni"
+ARG AFNI_URI="https://afni.nimh.nih.gov/pub/dist/bin/misc/@update.afni.binaries"
+RUN dnf install -y epel-release
+RUN dnf install -y curl tcsh python2-devel libpng15 motif
+RUN mkdir -p "${AFNI_PREFIX}"
+WORKDIR "${AFNI_PREFIX}"
+RUN curl -O "${AFNI_URI}"
+RUN tcsh @update.afni.binaries -package linux_centos_7_64 -do_extras -bindir "${AFNI_PREFIX}"
+
+# install ants
+ARG ANTS_PREFIX="/sw/apps/ants"
+ARG ANTS_URI="https://www.dropbox.com/s/3s9b6g6xx34tvhj/ANTs-Linux-centos5_x86_64-v2.2.0-0740f91.tar.gz?dl=0"
+RUN dnf install -y libGLw libGLU gsl
+RUN ln -s /usr/lib64/libgsl.so.23 /usr/lib64/libgsl.so.0
+RUN mkdir -p "${ANTS_PREFIX}"
+RUN curl -sSL "${ANTS_URI}" \
+  | tar -xzC "${ANTS_PREFIX}" --strip-components 1
+
+# install dcm2niix
+ARG D2N_PREFIX="/sw/apps/dcm2niix"
+ARG D2N_URI="https://github.com/rordenlab/dcm2niix/releases/download/v1.0.20200331/dcm2niix_lnx.zip"
+RUN dnf install -y unzip
+RUN mkdir -p "${D2N_PREFIX}"
+RUN curl -sL "${D2N_URI}" -o "/tmp/dcm2niix_lnx.zip"
+WORKDIR "${D2N_PREFIX}"
+RUN unzip "/tmp/dcm2niix_lnx.zip"
+RUN rm "/tmp/dcm2niix_lnx.zip"
+
+# install t2qc
+ARG T2QC_PREFIX="/sw/apps/t2qc"
+ARG T2QC_VERSION="0.1.0"
+RUN dnf install -y compat-openssl10
+RUN mkdir -p "${T2QC_PREFIX}"
+ENV PIPENV_VENV_IN_PROJECT=1
+WORKDIR "${T2QC_PREFIX}"
+RUN pipenv install t2qc=="${T2QC_VERSION}"
+
+# freeview environment
+ENV FREESURFER_HOME="${FV_PREFIX}"
+ENV PATH="${FREESURFER_HOME}/bin:${PATH}"
+
+# fsl environment
+ENV FSLDIR="${FSL_PREFIX}"
+ENV FSLGECUDAQ="cuda.q" \
+    FSLMULTIFILEQUIT="TRUE" \
+    FSLOUTPUTTYPE="NIFTI_GZ" \
+    FSLWISH="${FSLDIR}/bin/fslwish" \
+    FSLTCLSH="${FSLDIR}/bin/fsltclsh" \
+    FSLMACHINELIST="" \
+    FSLREMOTECALL="" \
+    FSLLOCKDIR=""
+ENV PATH="${FSLDIR}/bin:${PATH}"
+
+# afni environment
+ENV PATH="${AFNI_PREFIX}:${PATH}"
+
+# ants environment
+ENV PATH="${ANTS_PREFIX}:${PATH}"
+
+# dcm2niix environment
+ENV PATH="${D2N_PREFIX}:${PATH}"
+
+# configure entrypoint
+WORKDIR /sw/apps/t2qc
+ENTRYPOINT ["pipenv", "run", "t2QC.py"]
