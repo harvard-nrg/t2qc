@@ -12,6 +12,10 @@ import collections as col
 logger = logging.getLogger(__name__)
 
 def do(args):
+    if args.insecure:
+        logger.warning('disabling ssl certificate verification')
+        yaxil.CHECK_CERTIFICATE = False
+
     # load authentication data and set environment variables for ArcGet.py
     auth = yaxil.auth2(
         args.xnat_alias,
@@ -70,6 +74,10 @@ def get_move(args, auth, run, scan, verbose=False):
         cmd.extend([
             '--project', args.project
         ])
+    if args.insecure:
+        cmd.extend([
+            '--insecure'
+        ])
     cmd.extend([
         '--config', '-'
     ])
@@ -100,6 +108,10 @@ def get_anat(args, auth, run, scan, verbose=False):
     if args.project:
         cmd.extend([
             '--project', args.project
+        ])
+    if args.insecure:
+        cmd.extend([
+            '--insecure'
         ])
     cmd.extend([
         '--config', '-'
