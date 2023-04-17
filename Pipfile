@@ -9,12 +9,12 @@ sphinx-rtd-theme = "*"
 
 [packages]
 yaxil = "*"
-vnav = "*"
+vnav = ">=0.3.1"
 nibabel = "*"
 retry = "*"
 natsort = "*"
 pillow = "*"
-selfie = "*"
+selfie = ">=0.3.0"
 executors = "*"
 t2qc = {editable = true,path = "."}
 
