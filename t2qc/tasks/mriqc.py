@@ -13,7 +13,6 @@ class Task(tasks.BaseTask):
         self._ses = ses
         self._run = run
         self._bids = bids
-        tempdir = '/n/holyscratch01/LABS/nrg/Users/nrgadmin'
         super().__init__(outdir, tempdir, pipenv)
 
     def build(self):
