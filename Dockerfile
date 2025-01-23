@@ -117,7 +117,7 @@ RUN rm "/tmp/dcm2niix_lnx.zip"
 # install t2qc
 ARG T2QC_PREFIX="/sw/apps/t2qc"
 ARG T2QC_VERSION="0.2.6"
-RUN dnf install -y compat-openssl10
+RUN dnf install -y compat-openssl10 redhat-lsb-core
 RUN mkdir -p "${T2QC_PREFIX}"
 ENV PIPENV_VENV_IN_PROJECT=1
 WORKDIR "${T2QC_PREFIX}"
