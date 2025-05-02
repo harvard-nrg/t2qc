@@ -27,6 +27,8 @@ def do(args):
         logger.warning('disabling ssl certificate verification')
         yaxil.CHECK_CERTIFICATE = False
 
+    conf = yaml.safe_load(open(args.config))
+
     # create job executor and job array
     if args.scheduler:
         E = executors.get(args.scheduler, partition=args.partition)
@@ -123,7 +125,8 @@ def do(args):
         )
 
     # build data to upload to xnat
-    R = Report(args.bids_dir, args.sub, args.ses, args.run)
+    params = conf['t2qc']['params']
+    R = Report(args.bids_dir, args.sub, args.ses, args.run, params)
     logger.info('building xnat artifacts to %s', args.artifacts_dir)
     R.build_assessment(args.artifacts_dir)
 

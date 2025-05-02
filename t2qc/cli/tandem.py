@@ -37,8 +37,8 @@ def do(args):
         scans = col.defaultdict(dict)
         for scan in ses.scans(label=args.label, project=args.project):
             note = scan['note']
-            move_match = match(note, conf['t2qc']['t2w_vnav']['tags'])
-            t2w_match = match(note, conf['t2qc']['t2w']['tags'])
+            move_match = match(note, conf['t2qc']['tags']['vnav'])
+            t2w_match = match(note, conf['t2qc']['tags']['t2w'])
             if move_match:
                 run = move_match.group('run')
                 if int(run) == int(args.run):
