@@ -135,7 +135,7 @@ class Report:
                 'dest': os.path.join('mriqc-html', '{0}_mriqc.html'.format(aid))
             }
         ]
-        # not all T1w scans have a vNav
+        # not all T2w scans have a vNav
         if self.dirs['vnav']:
             resources.extend([
                 {
@@ -225,7 +225,7 @@ class Report:
         basename = os.path.basename(self.dirs[task])
         sidecar = os.path.join(self.dirs[task], 'logs', basename + '.json')
         if task == 'vnav':
-            sidecar = sidecar.replace('_T1vnav.json', '_split-1_T1vnav.json')
+            sidecar = sidecar.replace('_T2vnav.json', '_split-1_T2vnav.json')
         if not os.path.exists(sidecar):
             raise FileNotFoundError(sidecar)
         with open(sidecar) as fo:
