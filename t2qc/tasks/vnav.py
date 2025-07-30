@@ -36,7 +36,7 @@ class Task(tasks.BaseTask):
         # copy json sidecar into output logs directory
         image = self._infile.replace('sourcedata', '')
         sidecar = BIDS.sidecar_for_image(image)
-        sidecar_real = sidecar.replace('_T2vnav', '_split-1025_T2vnav')
+        sidecar_real = sidecar.replace('_T2vnav', '_split-1_T2vnav')
         if not os.path.exists(sidecar_real):
             logger.debug(f'file not found {sidecar_real}')
             return
