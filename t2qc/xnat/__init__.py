@@ -224,8 +224,6 @@ class Report:
     def datasource(self, task):
         basename = os.path.basename(self.dirs[task])
         sidecar = os.path.join(self.dirs[task], 'logs', basename + '.json')
-        if task == 'vnav':
-            sidecar = sidecar.replace('_T2vnav.json', '_split-1_T2vnav.json')
         if not os.path.exists(sidecar):
             raise FileNotFoundError(sidecar)
         with open(sidecar) as fo:
