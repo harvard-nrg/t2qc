@@ -41,10 +41,12 @@ def do(args):
             t2w_match = match(note, conf['t2qc']['tags']['t2w'])
             if move_match:
                 run = move_match.group('run')
+                run = re.sub('[^0-9]', '', run or '1')
                 if int(run) == int(args.run):
                     scans[run]['move'] = scan['id']
             if t2w_match:
                 run = t2w_match.group('run')
+                run = re.sub('[^0-9]', '', run or '1')
                 if int(run) == int(args.run):
                     scans[run]['anat'] = scan['id']
     subject_label = scan['subject_label']
